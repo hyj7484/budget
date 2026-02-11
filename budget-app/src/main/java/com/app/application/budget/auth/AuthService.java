@@ -33,10 +33,6 @@ public class AuthService {
     @Transactional
     public SignupResponse signup(SignupRequest req) {
         // 1) 최소 검증
-        if (req.getEmail() == null || req.getEmail().isBlank()) throw new IllegalArgumentException("email은 필수입니다.");
-        if (req.getPassword() == null || req.getPassword().isBlank()) throw new IllegalArgumentException("password는 필수입니다.");
-        if (req.getDisplayName() == null || req.getDisplayName().isBlank()) throw new IllegalArgumentException("displayName은 필수입니다.");
-
         String locale = nvl(req.getLocale(), "ko-KR");
         String tz = nvl(req.getTimezone(), "Asia/Tokyo");
         String currency = nvl(req.getCurrencyCode(), "JPY");
@@ -117,13 +113,6 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest req) {
         AppUserAuthRow user = appUserMapper.findAuthByEmail(req.getEmail());
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-        }
-
-        if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-        }
 
         UUID ledgerId = ledgerMapper.findDefaultLedgerId(user.getId());
         if (ledgerId == null) {
