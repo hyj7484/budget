@@ -1,4 +1,4 @@
-package com.app.application.budget.auth.mapper;
+package com.app.application.budget.mapper;
 
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;

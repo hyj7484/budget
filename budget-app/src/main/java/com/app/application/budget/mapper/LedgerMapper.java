@@ -1,4 +1,4 @@
-package com.app.application.budget.auth.mapper;
+package com.app.application.budget.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -32,4 +32,25 @@ public interface LedgerMapper {
     """)
     @org.apache.ibatis.annotations.ResultType(UUID.class)
     UUID findDefaultLedgerId(@Param("userId") UUID userId);
+
+    
+    @Select("""
+        SELECT EXISTS(
+        SELECT 1
+        FROM ledger_member
+        WHERE ledger_id = #{ledgerId}
+        AND user_id = #{userId}
+        )
+    """)
+    boolean existsMember(@Param("ledgerId") UUID ledgerId, @Param("userId") UUID userId);
+
+    public record LedgerMetaRow(String timezone, String baseCurrency) {}
+
+    @Select("""
+        SELECT timezone, base_currency AS baseCurrency
+        FROM ledger
+        WHERE id = #{ledgerId}
+        AND deleted_at IS NULL
+    """)
+    LedgerMetaRow findMeta(@Param("ledgerId") UUID ledgerId);
 }

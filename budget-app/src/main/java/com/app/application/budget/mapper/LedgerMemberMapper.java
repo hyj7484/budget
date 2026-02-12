@@ -1,8 +1,9 @@
-package com.app.application.budget.auth.mapper;
+package com.app.application.budget.mapper;
 
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.UUID;
 
@@ -18,4 +19,14 @@ public interface LedgerMemberMapper {
             @Param("userId") UUID userId,
             @Param("role") String role // "OWNER"
     );
+
+    @Select("""
+        SELECT EXISTS(
+        SELECT 1
+        FROM ledger_member
+        WHERE ledger_id = #{ledgerId}
+        AND user_id = #{userId}
+        )
+    """)
+    boolean existsMember(@Param("ledgerId") UUID ledgerId, @Param("userId") UUID userId);
 }
