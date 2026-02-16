@@ -1,49 +1,22 @@
 package com.app.application.budget.dashboard.dto;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.UUID;
+
+import com.app.application.budget.record.CategoryStatRecord;
+import com.app.application.budget.record.PeriodRecord;
+import com.app.application.budget.record.RecentTxRecord;
+import com.app.application.budget.record.SummaryRecord;
 
 public record DashboardResponse(
-    Period period,
-    Summary summary,
-    List<RecentTx> recent,
-    List<CategoryStat> topExpenseCategories
+    // 표시 기간 정보
+    PeriodRecord period,
+    // 수입/지출 합계 및 순액
+    SummaryRecord summary,
+    // 최근 거래 내역 (최대 limit 건)
+    List<RecentTxRecord> recent,
+    // 지출 상위 카테고리 (최대 5개)
+    List<CategoryStatRecord> topExpenseCategories,
+    // 최근 6개월 간 월별 수입/지출 추이 (최대 6개월)
+    List<SummaryRecord> monthlyTrends
     ) {
-        
-    public record Period(OffsetDateTime from, OffsetDateTime to) {}
-
-    public record Summary(
-        BigDecimal income,
-        BigDecimal expense,
-        BigDecimal net,
-        long incomeCount,
-        long expenseCount
-    ) {}
-
-    public record RecentTx(
-        UUID id,
-        String type,              // EXPENSE/INCOME/TRANSFER
-        String status,            // POSTED/DRAFT
-        OffsetDateTime occurredAt,
-        BigDecimal amount,
-        String currencyCode,
-        UUID categoryId,
-        String categoryName,
-        String categoryIcon,
-        UUID paymentMethodId,
-        String paymentMethodName,
-        UUID toPaymentMethodId,
-        String toPaymentMethodName,
-        String merchant,
-        String memo
-        ) {}
-
-        public record CategoryStat(
-            UUID categoryId,
-            String name,
-            String icon,
-            BigDecimal amount
-    ) {}
 }

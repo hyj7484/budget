@@ -1,6 +1,6 @@
 package com.app.application.budget.record;
 
-public record LedgerMetaRow(
+public record LedgerMetaRecord(
     String timezone, 
     String baseCurrency
 ) {}

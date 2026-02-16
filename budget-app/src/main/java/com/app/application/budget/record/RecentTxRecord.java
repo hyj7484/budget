@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public record RecentTxRow(
+public record RecentTxRecord(
     UUID id,
     String type,
     String status,

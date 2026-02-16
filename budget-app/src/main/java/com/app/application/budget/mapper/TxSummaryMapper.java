@@ -1,8 +1,8 @@
 package com.app.application.budget.mapper;
 
 import com.app.application.budget.common.mybatis.UuidTypeHandler;
-import com.app.application.budget.record.RecentTxRow;
-import com.app.application.budget.record.SummaryRow;
+import com.app.application.budget.record.RecentTxRecord;
+import com.app.application.budget.record.SummaryRecord;
 
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.type.JdbcType;
@@ -27,7 +27,7 @@ public interface TxSummaryMapper {
           AND occurred_at >= #{from}
           AND occurred_at <  #{to}
     """)
-    SummaryRow sumIncomeExpense(@Param("ledgerId") UUID ledgerId,
+    SummaryRecord sumIncomeExpense(@Param("ledgerId") UUID ledgerId,
                                @Param("from") OffsetDateTime from,
                                @Param("to") OffsetDateTime to);
 
@@ -54,6 +54,6 @@ public interface TxSummaryMapper {
         @Arg(column="currencyCode", javaType=String.class),
         @Arg(column="memo", javaType=String.class)
     })
-    List<RecentTxRow> findRecent(@Param("ledgerId") UUID ledgerId,
+    List<RecentTxRecord> findRecent(@Param("ledgerId") UUID ledgerId,
                                 @Param("limit") int limit);
 }

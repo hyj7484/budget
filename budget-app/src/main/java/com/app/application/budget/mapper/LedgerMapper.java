@@ -4,7 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import com.app.application.budget.record.LedgerMetaRow;
+import com.app.application.budget.record.LedgerMetaRecord;
 
 import java.util.UUID;
 
@@ -60,5 +60,5 @@ public interface LedgerMapper {
         WHERE id = #{ledgerId}
         AND deleted_at IS NULL
     """)
-    LedgerMetaRow findMeta(@Param("ledgerId") UUID ledgerId);
+    LedgerMetaRecord findMeta(@Param("ledgerId") UUID ledgerId);
 }

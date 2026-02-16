@@ -4,9 +4,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import com.app.application.budget.record.CategoryStatRow;
-import com.app.application.budget.record.RecentTxRow;
-import com.app.application.budget.record.SummaryRow;
+import com.app.application.budget.record.CategoryStatRecord;
+import com.app.application.budget.record.RecentTxRecord;
+import com.app.application.budget.record.SummaryRecord;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -28,7 +28,7 @@ public interface DashboardMapper {
           AND occurred_at >= #{from}
           AND occurred_at <  #{to}
     """)
-    SummaryRow sumIncomeExpense(@Param("ledgerId") UUID ledgerId,
+    SummaryRecord sumIncomeExpense(@Param("ledgerId") UUID ledgerId,
                                @Param("from") OffsetDateTime from,
                                @Param("to") OffsetDateTime to);
 
@@ -58,7 +58,7 @@ public interface DashboardMapper {
         ORDER BY t.occurred_at DESC, t.created_at DESC
         LIMIT #{limit}
     """)
-    List<RecentTxRow> selectRecent(@Param("ledgerId") UUID ledgerId, @Param("limit") int limit);
+    List<RecentTxRecord> selectRecent(@Param("ledgerId") UUID ledgerId, @Param("limit") int limit);
 
     @Select("""
         SELECT
@@ -78,7 +78,7 @@ public interface DashboardMapper {
         ORDER BY amount DESC
         LIMIT #{limit}
     """)
-    List<CategoryStatRow> selectTopExpenseCategories(@Param("ledgerId") UUID ledgerId,
+    List<CategoryStatRecord> selectTopExpenseCategories(@Param("ledgerId") UUID ledgerId,
                                                     @Param("from") OffsetDateTime from,
                                                     @Param("to") OffsetDateTime to,
                                                     @Param("limit") int limit);

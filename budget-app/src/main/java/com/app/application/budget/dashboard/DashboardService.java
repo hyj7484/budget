@@ -3,9 +3,11 @@ package com.app.application.budget.dashboard;
 import com.app.application.budget.mapper.DashboardMapper;
 import com.app.application.budget.mapper.LedgerMapper;
 import com.app.application.budget.mapper.LedgerMemberMapper;
-import com.app.application.budget.record.LedgerMetaRow;
-import com.app.application.budget.record.RecentTxRow;
-import com.app.application.budget.record.SummaryRow;
+import com.app.application.budget.record.CategoryStatRecord;
+import com.app.application.budget.record.LedgerMetaRecord;
+import com.app.application.budget.record.PeriodRecord;
+import com.app.application.budget.record.RecentTxRecord;
+import com.app.application.budget.record.SummaryRecord;
 import com.app.application.budget.dashboard.dto.DashboardResponse;
 
 
@@ -17,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +31,9 @@ public class DashboardService {
     private final LedgerMapper ledgerMapper;
     private final DashboardMapper dashboardMapper;
 
+    private final int TopDefaultLimit = 5;
+    private final int monthlyTrendMonths = 6;
+
     @Transactional(readOnly = true)
     public DashboardResponse getDashboard(UUID userId, UUID ledgerId, String ym, Integer limit) {
 
@@ -35,7 +41,7 @@ public class DashboardService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a ledger member");
         }
 
-        LedgerMetaRow meta = ledgerMapper.findMeta(ledgerId);
+        LedgerMetaRecord meta = ledgerMapper.findMeta(ledgerId);
         ZoneId zone = ZoneId.of(meta.timezone());
 
        // 화면 출력할 기간 계산 (기본: 이번 달) 
@@ -49,14 +55,18 @@ public class DashboardService {
         OffsetDateTime from = target.atDay(1).atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime to = target.plusMonths(1).atDay(1).atStartOfDay(zone).toOffsetDateTime();
 
-        SummaryRow s = dashboardMapper.sumIncomeExpense(ledgerId, from, to);
+        SummaryRecord s = dashboardMapper.sumIncomeExpense(ledgerId, from, to);
+
+        // 수입
         BigDecimal income = s.income();
+        // 지출
         BigDecimal expense = s.expense();
+        // 잔액
         BigDecimal net = income.subtract(expense);
 
-        List<RecentTxRow> recentRows = dashboardMapper.selectRecent(ledgerId, lim);
-        List<DashboardResponse.RecentTx> recent = recentRows.stream()
-                .map(r -> new DashboardResponse.RecentTx(
+        List<RecentTxRecord> recentRows = dashboardMapper.selectRecent(ledgerId, lim);
+        List<RecentTxRecord> recent = recentRows.stream()
+                .map(r -> new RecentTxRecord(
                         r.id(), r.type(), r.status(), r.occurredAt(),
                         r.amount(), r.currencyCode(),
                         r.categoryId(), r.categoryName(), r.categoryIcon(),
@@ -66,15 +76,31 @@ public class DashboardService {
                 ))
                 .toList();
 
-        var top = dashboardMapper.selectTopExpenseCategories(ledgerId, from, to, 5).stream()
-                .map(r -> new DashboardResponse.CategoryStat(r.categoryId(), r.name(), r.icon(), r.amount()))
+        // 지출 상위 Top5 카테고리 조회
+        List<CategoryStatRecord> top = dashboardMapper.selectTopExpenseCategories(ledgerId, from, to, TopDefaultLimit).stream()
+                .map(r -> new CategoryStatRecord(r.categoryId(), r.name(), r.icon(), r.amount()))
                 .toList();
 
+         // 최근 6개월간 지출 추이 그래프용 데이터 조회 기능
+        List<SummaryRecord> monthlySummary = getMonthlySummary(ledgerId, from.minusMonths(5), to);
+
         return new DashboardResponse(
-                new DashboardResponse.Period(from, to),
-                new DashboardResponse.Summary(income, expense, net, s.incomeCount(), s.expenseCount()),
+                new PeriodRecord(from, to),
+                new SummaryRecord(income, expense, net, s.incomeCount(), s.expenseCount()),
                 recent,
-                top
+                top,
+                monthlySummary
         );
+    }
+
+    // 최근 6개월간 지출 추이 그래프용 데이터 조회 기능
+    private List<SummaryRecord> getMonthlySummary(UUID ledgerId, OffsetDateTime from, OffsetDateTime to) {
+        List<SummaryRecord> monthlyTrends = new ArrayList<>();
+        for(int i=0; i<monthlyTrendMonths; i++) {
+            OffsetDateTime monthFrom = from.minusMonths(i);
+            OffsetDateTime monthTo = to.minusMonths(i);
+            monthlyTrends.add(dashboardMapper.sumIncomeExpense(ledgerId, monthFrom, monthTo));
+        }
+        return monthlyTrends;
     }
 }
