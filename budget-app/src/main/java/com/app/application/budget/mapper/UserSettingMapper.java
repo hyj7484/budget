@@ -9,6 +9,16 @@ import java.util.UUID;
 @Mapper
 public interface UserSettingMapper {
 
+  /**
+   * 사용자 설정 초기값 삽입
+   * @param userId
+   * @param ledgerId
+   * @param locale
+   * @param timezone
+   * @param currency
+   * @param notifyFreq
+   * @return
+   */
     @Insert("""
         INSERT INTO user_setting (
           user_id, default_ledger_id, locale, timezone, currency_code,

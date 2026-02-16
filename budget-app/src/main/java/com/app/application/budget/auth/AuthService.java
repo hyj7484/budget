@@ -5,6 +5,8 @@ import com.app.application.budget.auth.dto.login.LoginRequest;
 import com.app.application.budget.auth.dto.login.LoginResponse;
 import com.app.application.budget.auth.dto.signup.SignupRequest;
 import com.app.application.budget.auth.dto.signup.SignupResponse;
+import com.app.application.budget.domain.enums.CategoryKind;
+import com.app.application.budget.dto.CategoryDto;
 import com.app.application.budget.mapper.*;
 
 import lombok.RequiredArgsConstructor;
@@ -33,14 +35,16 @@ public class AuthService {
 
     @Transactional
     public SignupResponse signup(SignupRequest req) {
-        // 1) 최소 검증
+        // 1) 최소 검증 
         String locale = nvl(req.getLocale(), "ko-KR");
         String tz = nvl(req.getTimezone(), "Asia/Tokyo");
-        String currency = nvl(req.getCurrencyCode(), "JPY");
+        String currency = nvl(req.getCurrencyCode(), "KRW");
         String ledgerName = nvl(req.getLedgerName(), "기본 가계부");
 
         // 2) 사용자 생성
+        // 패스워드 해싱
         String hash = passwordEncoder.encode(req.getPassword());
+        // 사용자 생성 및 ID 반환
         UUID userId = appUserMapper.insertAndReturnId(
                 req.getEmail(),
                 hash,
@@ -79,41 +83,51 @@ public class AuthService {
 
     private void seedDefaultCategories(UUID ledgerId) {
         // EXPENSE
-        List<CategorySeed> expense = List.of(
-                new CategorySeed("EXPENSE", null, "식비", "🍚", 10),
-                new CategorySeed("EXPENSE", null, "카페/간식", "☕", 20),
-                new CategorySeed("EXPENSE", null, "교통", "🚃", 30),
-                new CategorySeed("EXPENSE", null, "쇼핑", "🛍️", 40),
-                new CategorySeed("EXPENSE", null, "생활", "🏠", 50),
-                new CategorySeed("EXPENSE", null, "의료", "🏥", 60),
-                new CategorySeed("EXPENSE", null, "구독", "📦", 70),
-                new CategorySeed("EXPENSE", null, "여가", "🎮", 80),
-                new CategorySeed("EXPENSE", null, "여행", "🧳", 90),
-                new CategorySeed("EXPENSE", null, "기타", "🧾", 99)
+        List<CategoryDto> category = List.of(
+                // EXPENSE
+                createCategoryDto(CategoryKind.EXPENSE, "식비", "🍚", 10),
+                createCategoryDto(CategoryKind.EXPENSE, "카페/간식", "☕", 20),
+                createCategoryDto(CategoryKind.EXPENSE, "교통", "🚃", 30),
+                createCategoryDto(CategoryKind.EXPENSE, "쇼핑", "🛍️", 40),
+                createCategoryDto(CategoryKind.EXPENSE, "생활", "🏠", 50),
+                createCategoryDto(CategoryKind.EXPENSE, "의료", "🏥", 60),
+                createCategoryDto(CategoryKind.EXPENSE, "구독", "📦", 70),
+                createCategoryDto(CategoryKind.EXPENSE, "여가", "🎮", 80),
+                createCategoryDto(CategoryKind.EXPENSE, "여행", "🧳", 90),
+                createCategoryDto(CategoryKind.EXPENSE, "기타", "🧾", 99),
+                // INCOME
+                createCategoryDto(CategoryKind.INCOME, "급여", "💴", 10),
+                createCategoryDto(CategoryKind.INCOME, "기타수입", "➕", 20)
         );
 
-        // INCOME
-        List<CategorySeed> income = List.of(
-                new CategorySeed("INCOME", null, "급여", "💴", 10),
-                new CategorySeed("INCOME", null, "기타수입", "➕", 20)
-        );
-
-        for (CategorySeed c : expense) {
-            categoryMapper.insertRoot(ledgerId, c.kind, c.name, c.icon, c.sortOrder);
-        }
-        for (CategorySeed c : income) {
-            categoryMapper.insertRoot(ledgerId, c.kind, c.name, c.icon, c.sortOrder);
+        for (CategoryDto c : category) {
+            categoryMapper.insertRoot(ledgerId, c.getKind(), c.getName(), c.getIcon(), c.getSortOrder());
         }
     }
 
+    // 값이 null이거나 빈 문자열이면 기본값 반환, 그렇지 않으면 trim된 값 반환
     private static String nvl(String v, String def) {
         return (v == null || v.isBlank()) ? def : v.trim();
     }
 
-    private record CategorySeed(String kind, UUID parentId, String name, String icon, int sortOrder) {}
+    // 카테고리 DTO 생성
+    private CategoryDto createCategoryDto(CategoryKind kind, String name, String icon, int sortOrder){
+        CategoryDto dto = new CategoryDto();
+        dto.setKind(kind);
+        dto.setName(name);
+        dto.setIcon(icon);
+        dto.setSortOrder(sortOrder);
+        return dto;
+    }
 
+    // 로그인: 이메일로 사용자 조회 -> 패스워드 검증 -> 기본 원장 ID 조회 -> 응답 반환
     public LoginResponse login(LoginRequest req) {
         AppUserAuthRow user = appUserMapper.findAuthByEmail(req.getEmail());
+        
+        // 패스워드 일치 체크
+        if (user == null || !verifyPassword(req.getPassword(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "패스워드가 올바르지 않습니다.");
+        }
 
         UUID ledgerId = ledgerMapper.findDefaultLedgerId(user.getId());
         if (ledgerId == null) {
@@ -121,5 +135,9 @@ public class AuthService {
         }
 
         return new LoginResponse(user.getId(), ledgerId);
+    }
+
+    private boolean verifyPassword(String rawPassword, String hash) {
+        return passwordEncoder.matches(rawPassword, hash);
     }
 }

@@ -12,6 +12,16 @@ import com.app.application.budget.auth.dto.AppUserAuthRow;
 @Mapper
 public interface AppUserMapper {
 
+    /**
+     * 사용자 생성 및 ID 반환
+     * @param email
+     * @param passwordHash
+     * @param displayName
+     * @param locale
+     * @param timezone
+     * @param currency
+     * @return
+     */
     @Select("""
     INSERT INTO app_user (email, password_hash, display_name, locale, timezone, default_currency)
     VALUES (#{email}, #{passwordHash}, #{displayName}, #{locale}, #{timezone}, #{currency})

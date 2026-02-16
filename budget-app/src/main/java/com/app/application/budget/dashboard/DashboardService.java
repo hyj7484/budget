@@ -1,9 +1,14 @@
 package com.app.application.budget.dashboard;
 
+import com.app.application.budget.mapper.DashboardMapper;
 import com.app.application.budget.mapper.LedgerMapper;
 import com.app.application.budget.mapper.LedgerMemberMapper;
+import com.app.application.budget.record.LedgerMetaRow;
+import com.app.application.budget.record.RecentTxRow;
+import com.app.application.budget.record.SummaryRow;
 import com.app.application.budget.dashboard.dto.DashboardResponse;
-import com.app.application.budget.mapper.DashboardMapper;
+
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,24 +35,26 @@ public class DashboardService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a ledger member");
         }
 
-        var meta = ledgerMapper.findMeta(ledgerId);
+        LedgerMetaRow meta = ledgerMapper.findMeta(ledgerId);
         ZoneId zone = ZoneId.of(meta.timezone());
 
+       // 화면 출력할 기간 계산 (기본: 이번 달) 
         YearMonth target = (ym == null || ym.isBlank())
                 ? YearMonth.now(zone)
-                : YearMonth.parse(ym.trim()); // "2026-02"
+                : YearMonth.parse(ym.trim());
 
+        
         int lim = (limit == null || limit <= 0) ? 20 : Math.min(limit, 100);
 
         OffsetDateTime from = target.atDay(1).atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime to = target.plusMonths(1).atDay(1).atStartOfDay(zone).toOffsetDateTime();
 
-        var s = dashboardMapper.sumIncomeExpense(ledgerId, from, to);
+        SummaryRow s = dashboardMapper.sumIncomeExpense(ledgerId, from, to);
         BigDecimal income = s.income();
         BigDecimal expense = s.expense();
         BigDecimal net = income.subtract(expense);
 
-        var recentRows = dashboardMapper.selectRecent(ledgerId, lim);
+        List<RecentTxRow> recentRows = dashboardMapper.selectRecent(ledgerId, lim);
         List<DashboardResponse.RecentTx> recent = recentRows.stream()
                 .map(r -> new DashboardResponse.RecentTx(
                         r.id(), r.type(), r.status(), r.occurredAt(),

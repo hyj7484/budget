@@ -9,6 +9,15 @@ import java.util.UUID;
 @Mapper
 public interface PaymentMethodMapper {
 
+    /**
+     * 결제 수단 추가
+     * @param ledgerId
+     * @param type
+     * @param name
+     * @param institution
+     * @param last4
+     * @return
+     */
     @Insert("""
         INSERT INTO payment_method (ledger_id, type, name, institution, last4, is_active)
         VALUES (#{ledgerId}, #{type}::payment_method_type, #{name}, #{institution}, #{last4}, true)

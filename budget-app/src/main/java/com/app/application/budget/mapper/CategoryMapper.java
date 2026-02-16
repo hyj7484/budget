@@ -4,6 +4,8 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.app.application.budget.domain.enums.CategoryKind;
+
 import java.util.UUID;
 
 @Mapper
@@ -15,7 +17,7 @@ public interface CategoryMapper {
     """)
     int insertRoot(
             @Param("ledgerId") UUID ledgerId,
-            @Param("kind") String kind, // EXPENSE/INCOME
+            @Param("kind") CategoryKind kind, // EXPENSE/INCOME
             @Param("name") String name,
             @Param("icon") String icon,
             @Param("sortOrder") int sortOrder

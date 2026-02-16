@@ -4,11 +4,21 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import com.app.application.budget.record.LedgerMetaRow;
+
 import java.util.UUID;
 
 @Mapper
 public interface LedgerMapper {
 
+    /**
+     * 원장 생성 및 ID 반환
+     * @param ownerUserId
+     * @param name
+     * @param currency
+     * @param timezone
+     * @return
+     */
     @Select("""
         INSERT INTO ledger (owner_user_id, name, base_currency, timezone)
         VALUES (#{ownerUserId}, #{name}, #{currency}, #{timezone})
@@ -43,8 +53,6 @@ public interface LedgerMapper {
         )
     """)
     boolean existsMember(@Param("ledgerId") UUID ledgerId, @Param("userId") UUID userId);
-
-    public record LedgerMetaRow(String timezone, String baseCurrency) {}
 
     @Select("""
         SELECT timezone, base_currency AS baseCurrency

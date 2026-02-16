@@ -8,12 +8,12 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/ledgers")
+@RequestMapping("/api/v1/dashboard")
 public class DashboardController {
 
     private final DashboardService dashboardService;
 
-    @GetMapping("/{ledgerId}/dashboard")
+    @GetMapping("/{ledgerId}")
     public DashboardResponse dashboard(
             @RequestHeader("X-User-Id") UUID userId,
             @PathVariable UUID ledgerId,

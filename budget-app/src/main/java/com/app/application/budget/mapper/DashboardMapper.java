@@ -4,15 +4,16 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
-import java.math.BigDecimal;
+import com.app.application.budget.record.CategoryStatRow;
+import com.app.application.budget.record.RecentTxRow;
+import com.app.application.budget.record.SummaryRow;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @Mapper
 public interface DashboardMapper {
-
-    record SummaryRow(BigDecimal income, BigDecimal expense, long incomeCount, long expenseCount) {}
 
     @Select("""
         SELECT
@@ -30,24 +31,6 @@ public interface DashboardMapper {
     SummaryRow sumIncomeExpense(@Param("ledgerId") UUID ledgerId,
                                @Param("from") OffsetDateTime from,
                                @Param("to") OffsetDateTime to);
-
-    record RecentTxRow(
-            UUID id,
-            String type,
-            String status,
-            OffsetDateTime occurredAt,
-            BigDecimal amount,
-            String currencyCode,
-            UUID categoryId,
-            String categoryName,
-            String categoryIcon,
-            UUID paymentMethodId,
-            String paymentMethodName,
-            UUID toPaymentMethodId,
-            String toPaymentMethodName,
-            String merchant,
-            String memo
-    ) {}
 
     @Select("""
         SELECT
@@ -76,8 +59,6 @@ public interface DashboardMapper {
         LIMIT #{limit}
     """)
     List<RecentTxRow> selectRecent(@Param("ledgerId") UUID ledgerId, @Param("limit") int limit);
-
-    record CategoryStatRow(UUID categoryId, String name, String icon, BigDecimal amount) {}
 
     @Select("""
         SELECT
