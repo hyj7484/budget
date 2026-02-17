@@ -10,7 +10,7 @@ import com.app.application.budget.record.PeriodRecord;
 import com.app.application.budget.record.RecentTxRecord;
 import com.app.application.budget.record.SummaryRecord;
 import com.app.application.budget.dashboard.dto.DashboardResponse;
-
+import com.app.application.budget.domain.enums.PaymentMethodType;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -35,29 +35,30 @@ public class DashboardService {
     private final int monthlyTrendMonths = 6;
 
     @Transactional(readOnly = true)
-    public DashboardResponse getDashboard(UUID userId, UUID ledgerId, String ym, Integer limit) {
+    public DashboardResponse getDashboard(UUID userId, UUID ledgerId, String ym, Integer limit, String paymentMethodType) {
 
-        if (!ledgerMemberMapper.existsMember(ledgerId, userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a ledger member");
-        }
+        // 사용자 권한 체크 (원장 멤버 여부)
+        checkUser(ledgerId, userId);
+
+        // Optional한 결제 수단 유형 파싱
+        PaymentMethodType pmType = paymentMethodType != null ? PaymentMethodType.fromString(paymentMethodType) : null;
 
         // 원장 메타 정보 조회 (시간대 정보 필요)
-        LedgerMetaRecord meta = ledgerMapper.findMeta(ledgerId);
-        ZoneId zone = ZoneId.of(meta.timezone());
+        ZoneId zone =getTimeZone(ledgerId);
 
        // 화면 출력할 기간 계산 (기본: 이번 달) 
         YearMonth target = (ym == null || ym.isBlank())
                 ? YearMonth.now(zone)
                 : YearMonth.parse(ym.trim());
 
-        
+        // Optional한 limit 파싱 (기본: 20, 최대: 100)        
         int lim = (limit == null || limit <= 0) ? 20 : Math.min(limit, 100);
 
         OffsetDateTime from = target.atDay(1).atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime to = target.plusMonths(1).atDay(1).atStartOfDay(zone).toOffsetDateTime();
 
         // 수입/지출 합계 및 순액 조회
-        SummaryRecord summaryRecord = dashboardMapper.sumIncomeExpense(ledgerId, from, to);
+        SummaryRecord summaryRecord = dashboardMapper.sumIncomeExpense(ledgerId, from, to, pmType);
         
         // 최근 거래 내역 조회 
         List<RecentTxRecord> recentRows = dashboardMapper.selectRecent(ledgerId, lim);
@@ -78,7 +79,7 @@ public class DashboardService {
                 .toList();
 
          // 최근 6개월간 지출 추이 그래프용 데이터 조회 기능
-        List<MonthlySummaryRecord> monthlySummary = getMonthlySummary(ledgerId, from.minusMonths(monthlyTrendMonths-1), to);
+        List<MonthlySummaryRecord> monthlySummary = getMonthlySummary(ledgerId, from.minusMonths(monthlyTrendMonths-1), to, pmType);
 
         return new DashboardResponse(
                 new PeriodRecord(from, to),
@@ -90,12 +91,12 @@ public class DashboardService {
     }
 
     // 최근 6개월간 지출 추이 그래프용 데이터 조회 기능
-    private List<MonthlySummaryRecord> getMonthlySummary(UUID ledgerId, OffsetDateTime from, OffsetDateTime to) {
+    private List<MonthlySummaryRecord> getMonthlySummary(UUID ledgerId, OffsetDateTime from, OffsetDateTime to, PaymentMethodType paymentMethodType) {
         List<MonthlySummaryRecord> monthlyTrends = new ArrayList<>();
         for(int i=0; i<monthlyTrendMonths; i++) {
             OffsetDateTime monthFrom = from.plusMonths(i);
             OffsetDateTime monthTo = monthFrom.plusMonths(1);
-            SummaryRecord monthlySummaryRecord = dashboardMapper.sumIncomeExpense(ledgerId, monthFrom, monthTo);
+            SummaryRecord monthlySummaryRecord = dashboardMapper.sumIncomeExpense(ledgerId, monthFrom, monthTo, paymentMethodType);
             monthlyTrends.add(new MonthlySummaryRecord(
                     monthFrom.toLocalDate().toString().substring(0,7), // "YYYY-MM"
                     monthlySummaryRecord.income(),
@@ -108,8 +109,16 @@ public class DashboardService {
         return monthlyTrends;
     }
 
-    public DashboardResponse getRecentByType(UUID userId, UUID ledgerId, Integer type) {
+    private void checkUser(UUID ledgerId, UUID userId) {
+        if (!ledgerMemberMapper.existsMember(ledgerId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a ledger member");
+        }
+    }
 
-        return null;
+    private ZoneId getTimeZone(UUID ledgerId){
+        // 원장 메타 정보 조회 (시간대 정보 필요)
+        LedgerMetaRecord meta = ledgerMapper.findMeta(ledgerId);
+        ZoneId zone = ZoneId.of(meta.timezone());
+        return zone;
     }
 }

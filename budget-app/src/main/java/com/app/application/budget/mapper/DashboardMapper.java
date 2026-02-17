@@ -1,9 +1,12 @@
 package com.app.application.budget.mapper;
 
+import org.apache.ibatis.annotations.Lang;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.scripting.xmltags.XMLLanguageDriver;
 
+import com.app.application.budget.domain.enums.PaymentMethodType;
 import com.app.application.budget.record.CategoryStatRecord;
 import com.app.application.budget.record.RecentTxRecord;
 import com.app.application.budget.record.SummaryRecord;
@@ -15,24 +18,36 @@ import java.util.UUID;
 @Mapper
 public interface DashboardMapper {
 
+
+    @Lang(XMLLanguageDriver.class)
     @Select("""
+        <script>
         SELECT
-          COALESCE(SUM(CASE WHEN type='INCOME'  THEN amount ELSE 0 END), 0) AS income,
-          COALESCE(SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END), 0) AS expense,
-          ( COALESCE(SUM(CASE WHEN type='INCOME'  THEN amount ELSE 0 END), 0)
-          - COALESCE(SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END), 0) ) AS net,
-          COUNT(*) FILTER (WHERE type='INCOME')  AS incomeCount,
-          COUNT(*) FILTER (WHERE type='EXPENSE') AS expenseCount
+          COALESCE(SUM(CASE WHEN tx.type='INCOME'  THEN tx.amount ELSE 0 END), 0) AS income,
+          COALESCE(SUM(CASE WHEN tx.type='EXPENSE' THEN tx.amount ELSE 0 END), 0) AS expense,
+          ( COALESCE(SUM(CASE WHEN tx.type='INCOME'  THEN tx.amount ELSE 0 END), 0)
+          - COALESCE(SUM(CASE WHEN tx.type='EXPENSE' THEN tx.amount ELSE 0 END), 0) ) AS net,
+          COUNT(*) FILTER (WHERE tx.type='INCOME')  AS incomeCount,
+          COUNT(*) FILTER (WHERE tx.type='EXPENSE') AS expenseCount
         FROM tx
-        WHERE ledger_id = #{ledgerId}
-          AND status <> 'VOID'
-          AND deleted_at IS NULL
-          AND occurred_at >= #{from}
-          AND occurred_at <  #{to}
+        LEFT JOIN payment_method pm ON pm.id = tx.payment_method_id
+        WHERE tx.ledger_id = #{ledgerId}
+        <![CDATA[
+        AND tx.status <> 'VOID'
+        AND tx.deleted_at IS NULL
+        AND tx.occurred_at >= #{from}
+        AND tx.occurred_at < #{to}
+        ]]>
+        <if test="paymentMethodType != null">
+        AND pm.type::text = #{paymentMethodType}
+        </if>
+        </script>
     """)
     SummaryRecord sumIncomeExpense(@Param("ledgerId") UUID ledgerId,
                                @Param("from") OffsetDateTime from,
-                               @Param("to") OffsetDateTime to);
+                               @Param("to") OffsetDateTime to,
+                               @Param("paymentMethodType") PaymentMethodType paymentMethodType
+                               );
 
     @Select("""
         SELECT
