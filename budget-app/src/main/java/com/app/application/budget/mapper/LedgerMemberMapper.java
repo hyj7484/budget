@@ -33,7 +33,6 @@ public interface LedgerMemberMapper {
         FROM ledger_member
         WHERE ledger_id = #{ledgerId}
         AND user_id = #{userId}
-        AND deleted_at IS NULL
         )
     """)
     boolean existsMember(@Param("ledgerId") UUID ledgerId, @Param("userId") UUID userId);

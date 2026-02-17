@@ -1,3 +1,5 @@
 .vscode
 document
 .env
+.mvn
+.metadata

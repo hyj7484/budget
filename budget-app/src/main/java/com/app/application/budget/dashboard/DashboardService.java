@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
 import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +40,7 @@ public class DashboardService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a ledger member");
         }
 
+        // 원장 메타 정보 조회 (시간대 정보 필요)
         LedgerMetaRecord meta = ledgerMapper.findMeta(ledgerId);
         ZoneId zone = ZoneId.of(meta.timezone());
 
@@ -55,15 +55,10 @@ public class DashboardService {
         OffsetDateTime from = target.atDay(1).atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime to = target.plusMonths(1).atDay(1).atStartOfDay(zone).toOffsetDateTime();
 
-        SummaryRecord s = dashboardMapper.sumIncomeExpense(ledgerId, from, to);
-
-        // 수입
-        BigDecimal income = s.income();
-        // 지출
-        BigDecimal expense = s.expense();
-        // 잔액
-        BigDecimal net = income.subtract(expense);
-
+        // 수입/지출 합계 및 순액 조회
+        SummaryRecord summaryRecord = dashboardMapper.sumIncomeExpense(ledgerId, from, to);
+        
+        // 최근 거래 내역 조회 
         List<RecentTxRecord> recentRows = dashboardMapper.selectRecent(ledgerId, lim);
         List<RecentTxRecord> recent = recentRows.stream()
                 .map(r -> new RecentTxRecord(
@@ -82,11 +77,11 @@ public class DashboardService {
                 .toList();
 
          // 최근 6개월간 지출 추이 그래프용 데이터 조회 기능
-        List<SummaryRecord> monthlySummary = getMonthlySummary(ledgerId, from.minusMonths(5), to);
+        List<SummaryRecord> monthlySummary = getMonthlySummary(ledgerId, from.minusMonths(monthlyTrendMonths-1), to);
 
         return new DashboardResponse(
                 new PeriodRecord(from, to),
-                new SummaryRecord(income, expense, net, s.incomeCount(), s.expenseCount()),
+                summaryRecord,
                 recent,
                 top,
                 monthlySummary
@@ -97,8 +92,8 @@ public class DashboardService {
     private List<SummaryRecord> getMonthlySummary(UUID ledgerId, OffsetDateTime from, OffsetDateTime to) {
         List<SummaryRecord> monthlyTrends = new ArrayList<>();
         for(int i=0; i<monthlyTrendMonths; i++) {
-            OffsetDateTime monthFrom = from.minusMonths(i);
-            OffsetDateTime monthTo = to.minusMonths(i);
+            OffsetDateTime monthFrom = from.plusMonths(i);
+            OffsetDateTime monthTo = monthFrom.plusMonths(1);
             monthlyTrends.add(dashboardMapper.sumIncomeExpense(ledgerId, monthFrom, monthTo));
         }
         return monthlyTrends;

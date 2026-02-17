@@ -19,6 +19,8 @@ public interface DashboardMapper {
         SELECT
           COALESCE(SUM(CASE WHEN type='INCOME'  THEN amount ELSE 0 END), 0) AS income,
           COALESCE(SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END), 0) AS expense,
+          ( COALESCE(SUM(CASE WHEN type='INCOME'  THEN amount ELSE 0 END), 0)
+          - COALESCE(SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END), 0) ) AS net,
           COUNT(*) FILTER (WHERE type='INCOME')  AS incomeCount,
           COUNT(*) FILTER (WHERE type='EXPENSE') AS expenseCount
         FROM tx
