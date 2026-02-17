@@ -22,4 +22,13 @@ public class DashboardController {
     ) {
         return dashboardService.getDashboard(userId, ledgerId, ym, limit);
     }
+
+    @GetMapping("/{ledgerId}/recentType/{type}")
+    public DashboardResponse getRecentByType(
+            @RequestHeader("X-User-Id") UUID userId,
+            @PathVariable UUID ledgerId,
+            @PathVariable Integer type
+    ){
+        return dashboardService.getRecentByType(userId, ledgerId, type);
+    }
 }

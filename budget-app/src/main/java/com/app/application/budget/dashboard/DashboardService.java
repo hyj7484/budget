@@ -5,6 +5,7 @@ import com.app.application.budget.mapper.LedgerMapper;
 import com.app.application.budget.mapper.LedgerMemberMapper;
 import com.app.application.budget.record.CategoryStatRecord;
 import com.app.application.budget.record.LedgerMetaRecord;
+import com.app.application.budget.record.MonthlySummaryRecord;
 import com.app.application.budget.record.PeriodRecord;
 import com.app.application.budget.record.RecentTxRecord;
 import com.app.application.budget.record.SummaryRecord;
@@ -77,7 +78,7 @@ public class DashboardService {
                 .toList();
 
          // 최근 6개월간 지출 추이 그래프용 데이터 조회 기능
-        List<SummaryRecord> monthlySummary = getMonthlySummary(ledgerId, from.minusMonths(monthlyTrendMonths-1), to);
+        List<MonthlySummaryRecord> monthlySummary = getMonthlySummary(ledgerId, from.minusMonths(monthlyTrendMonths-1), to);
 
         return new DashboardResponse(
                 new PeriodRecord(from, to),
@@ -89,13 +90,26 @@ public class DashboardService {
     }
 
     // 최근 6개월간 지출 추이 그래프용 데이터 조회 기능
-    private List<SummaryRecord> getMonthlySummary(UUID ledgerId, OffsetDateTime from, OffsetDateTime to) {
-        List<SummaryRecord> monthlyTrends = new ArrayList<>();
+    private List<MonthlySummaryRecord> getMonthlySummary(UUID ledgerId, OffsetDateTime from, OffsetDateTime to) {
+        List<MonthlySummaryRecord> monthlyTrends = new ArrayList<>();
         for(int i=0; i<monthlyTrendMonths; i++) {
             OffsetDateTime monthFrom = from.plusMonths(i);
             OffsetDateTime monthTo = monthFrom.plusMonths(1);
-            monthlyTrends.add(dashboardMapper.sumIncomeExpense(ledgerId, monthFrom, monthTo));
+            SummaryRecord monthlySummaryRecord = dashboardMapper.sumIncomeExpense(ledgerId, monthFrom, monthTo);
+            monthlyTrends.add(new MonthlySummaryRecord(
+                    monthFrom.toLocalDate().toString().substring(0,7), // "YYYY-MM"
+                    monthlySummaryRecord.income(),
+                    monthlySummaryRecord.expense(),
+                    monthlySummaryRecord.net(),
+                    monthlySummaryRecord.incomeCount(),
+                    monthlySummaryRecord.expenseCount()
+            ));
         }
         return monthlyTrends;
+    }
+
+    public DashboardResponse getRecentByType(UUID userId, UUID ledgerId, Integer type) {
+
+        return null;
     }
 }
